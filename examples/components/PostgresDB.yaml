@@ -1,0 +1,10 @@
+PostgresDB:
+  provider: docker
+  image: postgres
+  version: "16"
+  port: 5432
+  env:
+    POSTGRES_DB: testdb
+    POSTGRES_USER: testuser
+    POSTGRES_PASSWORD: testpass
+  healthcheck: "pg_isready -U testuser -d testdb"
