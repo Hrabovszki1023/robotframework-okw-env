@@ -403,3 +403,33 @@ This concept is highly AI-friendly:
 | `SetValue Field Value` | `StartEnvironment DB version=17` |
 | Framework resolves locator | Framework generates Compose |
 | Tester sees no Selenium | Tester sees no Docker |
+
+### Why No Widget Layer for Environments?
+
+In the GUI world, widgets (`WebSe_Button`, `RemoteSw_Button`, ...) are
+technology-specific drivers — one per UI element type per technology.
+The question arises: does the environment layer need a similar widget
+abstraction for different component types (database, web app, queue, ...)?
+
+**No.** The widgets in the GUI layer **are** the drivers — just fine-grained
+per UI element. A `WebSe_Button` is a Selenium driver for buttons,
+a `WebSe_Input` is a Selenium driver for input fields. The technology
+determines how to interact with each element type.
+
+For environments, this fine-granularity is unnecessary. A Docker container
+is a Docker container — regardless of whether Postgres or a WebShop runs
+inside it. The provider (Docker, Proxmox, ...) handles all component
+types the same way: create, start, check health, stop, destroy.
+
+The mapping is:
+
+| GUI | Environment |
+|---|---|
+| `WebSe_Button` = Selenium driver for buttons | `okw-env-docker` = Docker driver for environments |
+| `RemoteSw_Button` = Swing driver for buttons | `okw-env-proxmox` = Proxmox driver for environments |
+| Fine-grained: one widget class per element type | Coarse-grained: one driver for all component types |
+| Behavior differs per element (click vs. type vs. select) | Behavior is identical (create, start, stop, destroy) |
+
+Project-specific customization happens entirely in YAML (which image,
+which port, which env vars) — not in code. Same as GUI widgets, where
+the locator YAML is project-specific, not the widget class.
