@@ -72,6 +72,44 @@ Each test declares its own preconditions. No Jenkins config, no external
 coordination, no implicit coupling. The test is **self-contained** and
 **self-documenting**.
 
+### ISTQB Says: The Environment Belongs in the Test Case
+
+The ISTQB Glossary defines a test case as:
+
+> *"A set of input values, execution preconditions, expected results and
+> execution postconditions, developed for a particular objective or test
+> condition, such as to exercise a particular program path or to verify
+> compliance with a specific requirement."*
+>
+> — [ISTQB Glossary](https://istqb-glossary.page/test-case/)
+
+The key term is **execution preconditions**. The test environment —
+which database, which application server, which version, which
+configuration — is an execution precondition. Without the right
+environment, the test cannot execute.
+
+When the environment is managed in Jenkins, Ansible, or a separate
+CI pipeline, the test case is **missing its execution preconditions**.
+By ISTQB's own definition, it is not a complete test case.
+
+**The uncomfortable truth:** This means that probably 100% of all
+automated test cases in projects with externally managed environments
+are — strictly speaking — not test cases at all. They are test
+*fragments* that depend on undocumented external preconditions.
+
+With okw-env, a test case becomes ISTQB-complete:
+
+| ISTQB Element | Where it lives | okw-env Keyword |
+|---|---|---|
+| Execution preconditions | **In the test case** | `ENV_Start`, `ENV_BuildAndRun`, `ENV_WaitForReady` |
+| Input values | In the test case | `SetValue` |
+| Actions | In the test case | `ClickOn`, `SelectMenu` |
+| Expected results | In the test case | `VerifyValue` |
+| Execution postconditions | **In the test case** | `ENV_Stop` |
+
+Nothing external, nothing implicit, nothing undocumented. The test case
+is self-contained — as ISTQB intended.
+
 ## Solution
 
 Environment provisioning becomes part of the test case itself, using
