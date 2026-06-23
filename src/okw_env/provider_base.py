@@ -4,7 +4,15 @@ from abc import ABC, abstractmethod
 
 
 class OkwEnvProviderBase(ABC):
-    """Every environment provider (Docker, Proxmox, K8s, ...) implements this contract."""
+    """Every environment provider (Docker, Proxmox, K8s, ...) implements this contract.
+
+    The constructor receives the component dict from YAML so that
+    provider-specific connection parameters (e.g. ``docker_host``,
+    ``proxmox_url``) can be read directly from the component definition.
+    """
+
+    def __init__(self, component: dict | None = None):
+        pass
 
     @abstractmethod
     def create(self, component: dict) -> str:

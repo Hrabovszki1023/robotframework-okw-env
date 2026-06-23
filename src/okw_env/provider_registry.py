@@ -30,8 +30,13 @@ def discover_providers() -> dict[str, type[OkwEnvProviderBase]]:
     return _cache
 
 
-def get_provider(name: str) -> OkwEnvProviderBase:
-    """Get a provider instance by name (e.g. 'docker', 'proxmox')."""
+def get_provider(name: str, component: dict | None = None) -> OkwEnvProviderBase:
+    """Get a provider instance by name, passing component config for connection details.
+
+    The component dict is forwarded to the provider constructor so that
+    provider-specific keys (e.g. ``docker_host``) are available without
+    a separate configuration mechanism.
+    """
     providers = discover_providers()
     if name not in providers:
         available = list(providers.keys())
@@ -41,4 +46,4 @@ def get_provider(name: str) -> OkwEnvProviderBase:
             f"Install a provider package (e.g. pip install robotframework-okw-env-docker)."
         )
     provider_class = providers[name]
-    return provider_class()
+    return provider_class(component=component or {})

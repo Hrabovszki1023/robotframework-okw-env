@@ -89,7 +89,7 @@ class EnvironmentManager:
         """Resolve provider from component YAML or fall back to default."""
         provider_name = component.get("provider")
         if provider_name:
-            return get_provider(provider_name)
+            return get_provider(provider_name, component=component)
         if self._default_provider:
             return self._default_provider
         raise RuntimeError(
