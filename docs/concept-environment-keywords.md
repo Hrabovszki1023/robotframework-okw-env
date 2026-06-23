@@ -534,6 +534,100 @@ Project-specific customization happens entirely in YAML (which image,
 which port, which env vars) — not in code. Same as GUI widgets, where
 the locator YAML is project-specific, not the widget class.
 
+## Variable Publishing ($MEM{})
+
+A test environment is useless if the test cannot connect to it.
+After `ENV_BuildAndRun`, all YAML keys from every component are
+flattened to dot-notation and published as Robot Framework variables.
+
+### The Bridge Between Environment and Test
+
+```
+Phase 0: Provision                    Phase 3-4: Test
+┌────────────────────┐                ┌──────────────────────────────────┐
+│ PostgresDB.yaml    │                │ Test Case                        │
+│   image: postgres  │──flatten──────>│ ${PostgresDB.image} = postgres   │
+│   port: 5432       │                │ ${PostgresDB.port} = 5432        │
+│   env:             │                │ ${PostgresDB.env.POSTGRES_DB}    │
+│     POSTGRES_DB: x │                │   = shop                         │
+│   docker_host: ... │                │ ${PostgresDB.docker_host}        │
+└────────────────────┘                │   = tcp://192.168.1.123:2375     │
+                                      └──────────────────────────────────┘
+```
+
+### Flattening Rules
+
+- Top-level: `${Name.key}` — e.g. `${Redis.port}` → `6379`
+- Nested dict: `${Name.parent.key}` — e.g. `${DB.env.POSTGRES_DB}` → `shop`
+- Runtime data: `${Name.ID}` — the provider-specific container/VM ID
+
+### Usage Examples
+
+Direct Robot Framework variable access:
+
+```robot
+Log    Database: ${PostgresDB.env.POSTGRES_DB} on ${PostgresDB.docker_host}
+```
+
+In OKW GUI/API keywords via `$MEM{}` expansion:
+
+```robot
+SetValue    DB_Host    $MEM{PostgresDB.docker_host}
+SetValue    DB_Name    $MEM{PostgresDB.env.POSTGRES_DB}
+```
+
+### Why This Matters
+
+Without variable publishing, the test must hardcode connection details:
+
+```robot
+# NOISE: connection data hardcoded in test
+SetValue    DB_Host    192.168.1.123
+SetValue    DB_Port    5432
+SetValue    DB_Name    shop
+```
+
+With variable publishing, the test reads from the YAML — one source of truth:
+
+```robot
+# SIGNAL: data comes from the environment definition
+SetValue    DB_Host    $MEM{PostgresDB.docker_host}
+SetValue    DB_Port    $MEM{PostgresDB.port}
+SetValue    DB_Name    $MEM{PostgresDB.env.POSTGRES_DB}
+```
+
+Change the YAML, all tests adapt. No find-and-replace across test files.
+
+### Connection to extends
+
+Combined with YAML inheritance, this creates a powerful pattern:
+
+```yaml
+# PostgresBase.yaml — shared by all teams
+PostgresBase:
+  provider: docker
+  docker_host: tcp://192.168.1.123:2375
+  image: postgres
+  version: "16"
+  healthcheck: "pg_isready -U postgres"
+
+# PostgresShop.yaml — shop team
+PostgresShop:
+  extends: PostgresBase
+  env:
+    POSTGRES_DB: shop
+
+# PostgresPayment.yaml — payment team
+PostgresPayment:
+  extends: PostgresBase
+  env:
+    POSTGRES_DB: payment
+```
+
+Both tests use `$MEM{PostgresShop.env.POSTGRES_DB}` or
+`$MEM{PostgresPayment.env.POSTGRES_DB}` — no hardcoded values,
+full traceability to the YAML definition.
+
 ## Further Ideas and Sources
 
 ### Inspiration Projects

@@ -91,6 +91,44 @@ and delegate to the provider contract:
 | `ENV_StartFromImage` | (image cache lookup, fallback to full provisioning) |
 | `ENV_SnapshotOnFail` | `snapshot()` for each component (only on FAIL) |
 
+## Variable Publishing ($MEM{})
+
+After `ENV_BuildAndRun`, all component YAML keys are flattened to
+dot-notation and published as Robot Framework test variables. This
+bridges environment provisioning with test keywords.
+
+### Flattening Rules
+
+| YAML structure | Variable name | Example value |
+|---|---|---|
+| Top-level key | `${Name.key}` | `${PostgresDB.image}` → `postgres` |
+| Nested dict | `${Name.parent.key}` | `${PostgresDB.env.POSTGRES_DB}` → `shop` |
+| Container ID (runtime) | `${Name.ID}` | `${PostgresDB.ID}` → `okw-3df2dcc8` |
+
+All values are converted to strings via `str()`.
+
+### Usage in Robot Framework
+
+Direct access via Robot variable syntax:
+
+```robot
+Log    DB: ${PostgresDB.env.POSTGRES_DB} on port ${PostgresDB.port}
+```
+
+In OKW keywords via `$MEM{}` expansion:
+
+```robot
+SetValue    DB_Host    $MEM{PostgresDB.docker_host}
+SetValue    DB_Name    $MEM{PostgresDB.env.POSTGRES_DB}
+```
+
+### Design Rationale
+
+The connection data lives in the component YAML — not in environment
+variables, not in CI config, not hardcoded in the test. The same test
+runs against any Docker host by changing one YAML file. The variables
+are the bridge between Phase 0 (environment) and Phase 3 (test execution).
+
 ## Error Handling
 
 Providers MUST raise clear exceptions:
