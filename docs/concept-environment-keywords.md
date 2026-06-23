@@ -49,6 +49,113 @@ Order With Payment Gateway
     StopEnvironment     ALL
 ```
 
+## Simplified Phase Model — With Image Reuse
+
+The classic test model requires a reset phase (clean up state from previous
+tests) and a cleanup phase (restore state for next tests). Both are complex,
+error-prone, and slow. With ephemeral images, both disappear:
+
+**Classic model (without okw-env):**
+
+```
+0. Reset/Cleanup          ← complex, error-prone
+1. Test data setup
+2. Navigation + Action
+3. Verification
+4. Cleanup                ← complex, error-prone
+```
+
+**With okw-env:**
+
+```
+0. Instantiate image      ← seconds, always clean
+1. Test data setup        ← optional if already in image
+1. Navigation (incl. start SUT/App)
+2. Test action
+3. Acceptance criterion
+4. Terminate image        ← trivial, kill & forget
+```
+
+**What disappears:**
+
+- **No reset** — every image is factory-fresh
+- **No cleanup** — image is simply discarded
+- **No "state from previous test"** — impossible, because no shared state
+
+These are the two most error-prone phases in the classic model, and they
+are completely eliminated.
+
+### Image Caching — Run Phase 0-1 Once, Reuse Forever
+
+In practice, many test cases share the same preconditions (same environment,
+same test data, same initial state). Instead of rebuilding this for every
+test, run it once and snapshot:
+
+```
+Test 1 (first run):
+  Phase 0: Build environment           ┐
+  Phase 1: Load test data              │→ Snapshot → "ShopWithTestData"
+  Phase 1: Navigate, start App         │
+  ...                                  ┘
+  ErstelleImage  ShopWithTestData
+
+Test 2-100 (after that):
+  → Start from snapshot "ShopWithTestData"   ← seconds instead of minutes
+  Phase 2: Test action
+  Phase 3: Acceptance criterion
+  Phase 4: Terminate image
+```
+
+Two new keywords enable this:
+
+```robot
+*** Test Cases ***
+Order Standard Customer
+    StarteImageWennVorhanden    ShopWithTestData    Setup Shop Environment
+    # Directly at the actual test — environment is ready
+    SetValue    Article    Laptop
+    ClickOn     Order
+    VerifyValue Status     Paid
+
+Return Standard Customer
+    StarteImageWennVorhanden    ShopWithTestData    Setup Shop Environment
+    # Same snapshot, different test
+    ClickOn     Return
+    VerifyValue Status     Returned
+```
+
+```robot
+*** Keywords ***
+Setup Shop Environment
+    StartEnvironment    WebShop
+    StartEnvironment    PostgresDB
+    BuildAndRun
+    WaitForReady        WebShop
+    StartApp            MyShop
+    SetValue            User        admin
+    ClickOn             Login
+    # ... test data, navigation, etc.
+    ErstelleImage       ShopWithTestData
+```
+
+**Logic of `StarteImageWennVorhanden`:**
+
+```
+StarteImageWennVorhanden  "Name"  "Fallback-Keyword"
+    │
+    ├── Snapshot "Name" exists?
+    │     YES → Start from snapshot (seconds)
+    │     NO  → Execute fallback keyword (Phase 0-1)
+    │           → Creates snapshot "Name" for next test
+```
+
+**Speedup in practice:**
+
+| Scenario | Without image cache | With image cache |
+|---|---|---|
+| 1 test | 3 min (setup) + 30s (test) | 3 min + 30s (first run) |
+| 100 tests, same precondition | 100 × 3.5 min = **350 min** | 3 min + 100 × 30s = **53 min** |
+
 ## YAML Component Definitions
 
 Environment components are defined in YAML — same pattern as GUI locators:
