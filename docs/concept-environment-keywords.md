@@ -1,0 +1,260 @@
+# OKW Environment Keywords — Concept
+
+> Status: Draft
+> Date: 2026-06-23
+
+## Problem
+
+Test environments are typically managed separately from test code:
+Docker Compose files, CI scripts, infrastructure configs. This separation
+creates NOISE — the tester must jump between test code and infrastructure
+definitions to understand what a test actually needs.
+
+## Solution
+
+Environment provisioning becomes part of the test case itself, using
+the same keyword-driven, YAML-based approach as OKW GUI testing.
+
+## Extended Test Phase Model
+
+The classic OKW test model gains Phase 0 and Phase 5:
+
+```
+Phase 0: Build environment         ← NEW
+Phase 1: Preconditions (test data, states)
+Phase 2: Action
+Phase 3: Verification
+Phase 4: Cleanup
+Phase 5: Tear down environment     ← NEW
+```
+
+```robot
+*** Test Cases ***
+Order With Payment Gateway
+    # Phase 0 — Environment
+    StartEnvironment    WebShop
+    StartEnvironment    PostgresDB
+    StartEnvironment    PaymentGW
+    BuildAndRun
+    WaitForReady        WebShop
+
+    # Phase 1-4 — Test
+    StartApp            MyShop
+    SetValue            Article      Laptop
+    ClickOn             Order
+    VerifyValue         Status       Paid
+    StopApp
+
+    # Phase 5 — Teardown
+    StopEnvironment     ALL
+```
+
+## YAML Component Definitions
+
+Environment components are defined in YAML — same pattern as GUI locators:
+
+```yaml
+# environments/components/PostgresDB.yaml
+PostgresDB:
+  provider: docker
+  image: postgres
+  version: "16"
+  port: 5432
+  env:
+    POSTGRES_DB: testdb
+    POSTGRES_PASSWORD: test123
+  healthcheck: "pg_isready -U postgres"
+
+# environments/components/WebShop.yaml
+WebShop:
+  provider: docker
+  image: mycompany/webshop
+  version: "2.1"
+  port: 8080
+  depends_on: [PostgresDB]
+  healthcheck: "curl -f http://localhost:8080/health"
+```
+
+The test references only abstract names. The framework generates the
+provider-specific configuration (e.g., `docker-compose.yml`) automatically.
+
+## Generated Docker Compose (Example)
+
+From the YAML definitions above, the framework generates:
+
+```yaml
+# generated — never edit manually
+services:
+  PostgresDB:
+    image: postgres:16
+    ports: ["5432:5432"]
+    environment:
+      POSTGRES_DB: testdb
+      POSTGRES_PASSWORD: test123
+    healthcheck:
+      test: pg_isready -U postgres
+  WebShop:
+    image: mycompany/webshop:2.1
+    ports: ["8080:8080"]
+    depends_on: [PostgresDB]
+    healthcheck:
+      test: curl -f http://localhost:8080/health
+```
+
+## Complete Isolation — Parallel Execution
+
+Each test case brings its own environment. No shared state, no side effects:
+
+```
+Test A ──→ [WebShop:8080, DB:5432]     ← own containers
+Test B ──→ [WebShop:8081, DB:5433]     ← own containers
+Test C ──→ [WebShop:8082, DB:5434]     ← own containers
+     └── run simultaneously, no interference
+```
+
+Port assignment and network isolation are NOISE — the framework handles
+them automatically. The tester only describes **what** is needed.
+
+## Ephemeral Environments — No Security Concerns
+
+Environments exist only for the duration of the test case. After that:
+gone. No data, no open ports, no forgotten credentials.
+
+Consequences:
+
+- **Real passwords in tests** — no problem, the container lives 30 seconds
+- **Production-like data** — can be loaded without concern, nothing survives
+- **No firewall rules** — the network is ephemeral and isolated
+- **Compliance becomes trivial** — nothing to protect because nothing persists
+
+All the security measures needed for persistent test environments
+(secrets management, network policies, database encryption, access control)
+are NOISE that the ephemeral model eliminates completely.
+
+## Version Matrix Testing
+
+Changing a component version = one parameter:
+
+```robot
+*** Test Cases ***
+[Template]    Test Order
+    WebShop=2.1    PostgresDB=16    PaymentGW=1.0
+    WebShop=2.1    PostgresDB=17    PaymentGW=1.0    # DB upgrade
+    WebShop=3.0    PostgresDB=17    PaymentGW=1.0    # Shop upgrade
+    WebShop=3.0    PostgresDB=17    PaymentGW=2.0    # Everything new
+```
+
+Four combinations, four isolated environments, fully parallelizable.
+
+## Architecture
+
+```
+┌──────────────────────────────┐
+│  Robot Framework Test        │  StartEnvironment, StopEnvironment
+├──────────────────────────────┤
+│  okw-env (abstraction)       │  Keywords, YAML loader, provider contract
+├──────────────┬───────────────┤
+│  okw-env-    │  okw-env-     │  Provider plugins
+│  docker      │  proxmox      │
+├──────────────┼───────────────┤
+│  Docker      │  Proxmox      │  Underlying APIs
+│  Compose     │  VE API       │
+└──────────────┴───────────────┘
+```
+
+Same test, different provider — only the YAML decides where the
+environment runs:
+
+```yaml
+# Developer laptop
+PostgresDB:
+  provider: docker
+  image: postgres:17
+
+# CI on Proxmox
+PostgresDB:
+  provider: proxmox
+  template: debian-postgres-17
+  node: pve1
+  cores: 2
+  memory: 2048
+```
+
+## Provider Contract
+
+Every provider implements five methods:
+
+| Method | Purpose |
+|---|---|
+| `create(component)` | Create the environment component |
+| `start(component_id)` | Start it |
+| `is_ready(component_id)` | Health check passed? |
+| `stop(component_id)` | Stop it |
+| `destroy(component_id)` | Remove it and all resources |
+
+## Potential Provider Plugins
+
+| Category | Plugin | Technology |
+|---|---|---|
+| Container | `okw-env-docker` | Docker Compose |
+| Container | `okw-env-kubernetes` | K8s Namespaces/Pods |
+| Container | `okw-env-podman` | Podman (rootless) |
+| VM | `okw-env-proxmox` | Proxmox VE API |
+| VM | `okw-env-vagrant` | Vagrant/VirtualBox |
+| VM | `okw-env-libvirt` | KVM/QEMU |
+| Cloud | `okw-env-aws` | EC2, ECS, Fargate |
+| Cloud | `okw-env-azure` | Azure Container Instances |
+| Cloud | `okw-env-hetzner` | Hetzner Cloud API |
+| Special | `okw-env-testcontainers` | Testcontainers (Python) |
+| Special | `okw-env-lxd` | LXD/Incus |
+
+Start with Docker (90% of use cases) and Proxmox (existing infrastructure).
+Others when needed — YAGNI.
+
+## Signal vs. NOISE
+
+| Signal (tester writes) | NOISE (framework handles) |
+|---|---|
+| "I need WebShop + DB" | Port mapping, network isolation |
+| "WaitForReady" | Health check strategy |
+| "StopEnvironment ALL" | Container cleanup, volume deletion |
+| "version=17" | Compose file regeneration |
+| "PostgresDB" | Docker Compose syntax |
+
+| Persistent environment (NOISE) | Ephemeral environment (Signal) |
+|---|---|
+| Secrets vault for DB passwords | Password in test — doesn't matter |
+| Network policies | Network dies with the test |
+| Anonymize test data | Data dies with the test |
+| Cleanup jobs for old data | Nothing to clean up |
+
+## AI Perspective
+
+This concept is highly AI-friendly:
+
+1. **Generatability** — An AI can generate the complete test case including
+   environment from a natural-language description. No separate Docker
+   Compose knowledge needed.
+2. **Readability** — `StartEnvironment PaymentGW image=payment:1.0` is
+   instantly understandable. Docker Compose with networks, volumes,
+   healthchecks requires parsing to find what's relevant.
+3. **Reasoning** — When the environment is part of the test, an AI can:
+   - Detect missing services ("Your test calls a payment API but Phase 0
+     has no PaymentGW")
+   - Suggest optimizations ("Tests A and B need the same environment —
+     share it?")
+   - Compare tests ("A and B differ only in environment — intentional?")
+
+## Consistency with OKW GUI Architecture
+
+| GUI world | Environment world |
+|---|---|
+| `okw4robot` (Core) | `okw-env` (Core) |
+| `okw-web-selenium` | `okw-env-docker` |
+| `okw-java-remoteswing` | `okw-env-proxmox` |
+| Widget contract (`okw_click`, ...) | Provider contract (`create`, `start`, ...) |
+| Widget YAML (locator) | Component YAML (image, port) |
+| Adapter loads underlying library | Provider loads underlying API |
+| `SetValue Field Value` | `StartEnvironment DB version=17` |
+| Framework resolves locator | Framework generates Compose |
+| Tester sees no Selenium | Tester sees no Docker |
