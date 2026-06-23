@@ -10,6 +10,68 @@ Docker Compose files, CI scripts, infrastructure configs. This separation
 creates NOISE — the tester must jump between test code and infrastructure
 definitions to understand what a test actually needs.
 
+### The Jenkins Anti-Pattern
+
+In many projects, environments are created from Jenkins (or other CI tools)
+**outside** the test case. This creates a fundamental problem:
+
+```
+Jenkins Pipeline                     Test Suite
+┌────────────────────┐               ┌──────────────────┐
+│ Stage: Setup Env   │               │ Test A           │
+│   → Start DB       │    ??? ←───── │   needs DB + App │
+│   → Start WebShop  │               │ Test B           │
+│ Stage: Run Tests   │    ??? ←───── │   needs DB only  │
+│   → robot tests/   │               │ Test C           │
+│ Stage: Teardown    │    ??? ←───── │   needs DB + MQ  │
+│   → Stop all       │               └──────────────────┘
+└────────────────────┘
+```
+
+**Problems:**
+
+- **Separation of concerns violated** — the environment is a precondition
+  of the test, but it's defined somewhere else (Jenkinsfile, CI config).
+- **Implicit coupling** — which test needs which services? This must be
+  documented, coordinated, kept in sync. That's NOISE.
+- **One environment for all tests** — Jenkins typically starts one shared
+  environment. Tests that need different services can't express that.
+- **No isolation** — all tests share the same DB, same state, same ports.
+  Parallel execution is risky or impossible.
+- **Test is incomplete** — reading the test case alone doesn't tell you
+  what infrastructure it needs. You have to check Jenkins too.
+
+**The core insight:** The test environment is a **precondition** of the
+test case. It belongs inside the test case description — just like test
+data and navigation steps. Separating it into CI config is like putting
+test data into a Jenkins stage: technically possible, architecturally wrong.
+
+### With okw-env
+
+```robot
+*** Test Cases ***
+Test A
+    ENV_Start        PostgresDB
+    ENV_Start        WebShop
+    ENV_BuildAndRun
+    # ... test uses DB + App
+
+Test B
+    ENV_Start        PostgresDB
+    ENV_BuildAndRun
+    # ... test uses only DB
+
+Test C
+    ENV_Start        PostgresDB
+    ENV_Start        MessageQueue
+    ENV_BuildAndRun
+    # ... test uses DB + MQ
+```
+
+Each test declares its own preconditions. No Jenkins config, no external
+coordination, no implicit coupling. The test is **self-contained** and
+**self-documenting**.
+
 ## Solution
 
 Environment provisioning becomes part of the test case itself, using
