@@ -16,13 +16,13 @@ def discover_providers() -> dict[str, type[OkwEnvProviderBase]]:
     if _cache:
         return _cache
 
+    from importlib.metadata import entry_points
     if sys.version_info >= (3, 12):
-        from importlib.metadata import entry_points
         eps = entry_points(group=_ENTRY_POINT_GROUP)
+    elif sys.version_info >= (3, 10):
+        eps = entry_points().select(group=_ENTRY_POINT_GROUP)
     else:
-        from importlib.metadata import entry_points
-        all_eps = entry_points()
-        eps = all_eps.get(_ENTRY_POINT_GROUP, [])
+        eps = entry_points().get(_ENTRY_POINT_GROUP, [])
 
     for ep in eps:
         _cache[ep.name] = ep.load()
