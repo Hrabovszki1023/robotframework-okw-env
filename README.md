@@ -17,17 +17,17 @@ is provisioned. Docker Compose syntax, Proxmox API calls, and Kubernetes
 manifests are NOISE — the test only needs:
 
 ```robot
-StartEnvironment    WebShop
-StartEnvironment    PostgresDB    version=17
-BuildAndRun
-WaitForReady        WebShop
+ENV_Start        WebShop
+ENV_Start        PostgresDB    version=17
+ENV_BuildAndRun
+ENV_WaitForReady WebShop
 ```
 
 ## Architecture
 
 ```
 ┌──────────────────────────────┐
-│  Robot Framework Test        │  StartEnvironment, StopEnvironment
+│  Robot Framework Test        │  ENV_Start, ENV_Stop, ...
 ├──────────────────────────────┤
 │  okw-env (this library)      │  Keywords, YAML loader, provider contract
 ├──────────────┬───────────────┤
@@ -77,21 +77,21 @@ Library    okw4robot.library.OKW4RobotLibrary    WITH NAME    OKW
 *** Test Cases ***
 Order With Payment Gateway
     # Phase 0 — Environment
-    StartEnvironment    WebShop
-    StartEnvironment    PostgresDB
-    StartEnvironment    PaymentGW
-    BuildAndRun
-    WaitForReady        WebShop
+    ENV_Start        WebShop
+    ENV_Start        PostgresDB
+    ENV_Start        PaymentGW
+    ENV_BuildAndRun
+    ENV_WaitForReady WebShop
 
     # Phase 1-4 — Test
-    StartApp            MyShop
-    SetValue            Article      Laptop
-    ClickOn             Order
-    VerifyValue         Status       Paid
+    StartApp         MyShop
+    SetValue         Article      Laptop
+    ClickOn          Order
+    VerifyValue      Status       Paid
     StopApp
 
     # Phase 5 — Teardown
-    StopEnvironment     ALL
+    ENV_Stop
 ```
 
 ## Key Benefits

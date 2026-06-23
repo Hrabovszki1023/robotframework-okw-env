@@ -32,21 +32,21 @@ Phase 5: Tear down environment     ← NEW
 *** Test Cases ***
 Order With Payment Gateway
     # Phase 0 — Environment
-    StartEnvironment    WebShop
-    StartEnvironment    PostgresDB
-    StartEnvironment    PaymentGW
-    BuildAndRun
-    WaitForReady        WebShop
+    ENV_Start        WebShop
+    ENV_Start        PostgresDB
+    ENV_Start        PaymentGW
+    ENV_BuildAndRun
+    ENV_WaitForReady WebShop
 
     # Phase 1-4 — Test
-    StartApp            MyShop
-    SetValue            Article      Laptop
-    ClickOn             Order
-    VerifyValue         Status       Paid
+    StartApp         MyShop
+    SetValue         Article      Laptop
+    ClickOn          Order
+    VerifyValue      Status       Paid
     StopApp
 
     # Phase 5 — Teardown
-    StopEnvironment     ALL
+    ENV_Stop
 ```
 
 ## Simplified Phase Model — With Image Reuse
@@ -97,13 +97,13 @@ Test 1 (first run):
   Phase 1: Load test data              │→ Snapshot → "ShopWithTestData"
   Phase 1: Navigate, start App         │
   ...                                  ┘
-  ErstelleImage  ShopWithTestData
+  ENV_CreateImage  ShopWithTestData
 
 Test 2-100 (after that):
   → Start from snapshot "ShopWithTestData"   ← seconds instead of minutes
   Phase 2: Test action
   Phase 3: Acceptance criterion
-  Phase 4: Terminate image
+  Phase 4: ENV_Stop
 ```
 
 Two new keywords enable this:
@@ -111,14 +111,14 @@ Two new keywords enable this:
 ```robot
 *** Test Cases ***
 Order Standard Customer
-    StarteImageWennVorhanden    ShopWithTestData    Setup Shop Environment
+    ENV_StartFromImage    ShopWithTestData    Setup Shop Environment
     # Directly at the actual test — environment is ready
     SetValue    Article    Laptop
     ClickOn     Order
     VerifyValue Status     Paid
 
 Return Standard Customer
-    StarteImageWennVorhanden    ShopWithTestData    Setup Shop Environment
+    ENV_StartFromImage    ShopWithTestData    Setup Shop Environment
     # Same snapshot, different test
     ClickOn     Return
     VerifyValue Status     Returned
@@ -127,21 +127,21 @@ Return Standard Customer
 ```robot
 *** Keywords ***
 Setup Shop Environment
-    StartEnvironment    WebShop
-    StartEnvironment    PostgresDB
-    BuildAndRun
-    WaitForReady        WebShop
-    StartApp            MyShop
-    SetValue            User        admin
-    ClickOn             Login
+    ENV_Start        WebShop
+    ENV_Start        PostgresDB
+    ENV_BuildAndRun
+    ENV_WaitForReady WebShop
+    StartApp         MyShop
+    SetValue         User        admin
+    ClickOn          Login
     # ... test data, navigation, etc.
-    ErstelleImage       ShopWithTestData
+    ENV_CreateImage  ShopWithTestData
 ```
 
-**Logic of `StarteImageWennVorhanden`:**
+**Logic of `ENV_StartFromImage`:**
 
 ```
-StarteImageWennVorhanden  "Name"  "Fallback-Keyword"
+ENV_StartFromImage  "Name"  "Fallback-Keyword"
     │
     ├── Snapshot "Name" exists?
     │     YES → Start from snapshot (seconds)
@@ -257,7 +257,7 @@ Four combinations, four isolated environments, fully parallelizable.
 
 ```
 ┌──────────────────────────────┐
-│  Robot Framework Test        │  StartEnvironment, StopEnvironment
+│  Robot Framework Test        │  ENV_Start, ENV_Stop, ...
 ├──────────────────────────────┤
 │  okw-env (abstraction)       │  Keywords, YAML loader, provider contract
 ├──────────────┬───────────────┤
@@ -299,8 +299,8 @@ With `snapshot`, the framework freezes all containers before teardown:
 *** Test Cases ***
 Order With Payment Gateway
     [Teardown]    Run Keywords
-    ...    SnapshotOnFail
-    ...    StopEnvironment    ALL
+    ...    ENV_SnapshotOnFail
+    ...    ENV_Stop
 ```
 
 Or automatically via a global hook — every failed test gets a snapshot
@@ -360,11 +360,11 @@ Others when needed — YAGNI.
 
 | Signal (tester writes) | NOISE (framework handles) |
 |---|---|
-| "I need WebShop + DB" | Port mapping, network isolation |
-| "WaitForReady" | Health check strategy |
-| "StopEnvironment ALL" | Container cleanup, volume deletion |
-| "version=17" | Compose file regeneration |
-| "PostgresDB" | Docker Compose syntax |
+| `ENV_Start WebShop` | Port mapping, network isolation |
+| `ENV_WaitForReady` | Health check strategy |
+| `ENV_Stop` | Container cleanup, volume deletion |
+| `ENV_Start DB version=17` | Compose file regeneration |
+| `ENV_StartFromImage` | Snapshot management, fallback logic |
 
 | Persistent environment (NOISE) | Ephemeral environment (Signal) |
 |---|---|
@@ -400,7 +400,7 @@ This concept is highly AI-friendly:
 | Widget contract (`okw_click`, ...) | Provider contract (`create`, `start`, ...) |
 | Widget YAML (locator) | Component YAML (image, port) |
 | Adapter loads underlying library | Provider loads underlying API |
-| `SetValue Field Value` | `StartEnvironment DB version=17` |
+| `SetValue Field Value` | `ENV_Start DB version=17` |
 | Framework resolves locator | Framework generates Compose |
 | Tester sees no Selenium | Tester sees no Docker |
 
