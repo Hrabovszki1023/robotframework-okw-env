@@ -85,6 +85,28 @@ class EnvironmentManager:
             raise KeyError(f"Component '{name}' not registered. Registered: {list(self._components.keys())}")
         return self._components[name]
 
+    def get_mem_entries(self) -> dict[str, str]:
+        """Flatten all component configs into dot-notation for $MEM{} expansion.
+
+        Returns a dict like:
+            {"PostgresDB.image": "postgres", "PostgresDB.env.POSTGRES_DB": "shop", ...}
+        """
+        entries = {}
+        for name, config in self._components.items():
+            if name in self._component_ids:
+                entries[f"{name}.ID"] = self._component_ids[name]
+            self._flatten(name, config, entries)
+        return entries
+
+    @staticmethod
+    def _flatten(prefix: str, data: dict, result: dict) -> None:
+        for key, value in data.items():
+            full_key = f"{prefix}.{key}"
+            if isinstance(value, dict):
+                EnvironmentManager._flatten(full_key, value, result)
+            else:
+                result[full_key] = str(value)
+
     def _resolve_provider(self, name: str, component: dict) -> OkwEnvProviderBase:
         """Resolve provider from component YAML or fall back to default."""
         provider_name = component.get("provider")

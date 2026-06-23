@@ -53,12 +53,17 @@ class OkwEnvLibrary:
     def env_build_and_run(self):
         """Create and start all registered environment components.
 
+        After starting, all component YAML keys are published as
+        ``$MEM{ComponentName.key}`` variables for use in subsequent
+        keywords (e.g. ``$MEM{PostgresDB.env.POSTGRES_DB}``).
+
         Example:
         | ENV_Start      | WebShop    |
         | ENV_Start      | PostgresDB |
         | ENV_BuildAndRun |            |
         """
         self._manager.build_and_run()
+        self._publish_mem_entries()
         logger.info("ENV_BuildAndRun: All components started.")
 
     @keyword("ENV_WaitForReady")
@@ -150,6 +155,14 @@ class OkwEnvLibrary:
                     logger.info(f"--- Logs: {name} ---\n{logs}", html=False)
             except Exception as e:
                 logger.warn(f"Could not retrieve logs for '{name}': {e}")
+
+    def _publish_mem_entries(self):
+        """Publish all component config values as Robot Framework test variables."""
+        from robot.libraries.BuiltIn import BuiltIn
+        entries = self._manager.get_mem_entries()
+        for key, value in entries.items():
+            BuiltIn().set_test_variable(f"${{{key}}}", value)
+            logger.info(f"  $MEM{{{key}}} = {value}")
 
     @staticmethod
     def _parse_timeout(timeout: str) -> float:

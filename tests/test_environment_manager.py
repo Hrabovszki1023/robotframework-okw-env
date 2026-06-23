@@ -193,3 +193,48 @@ def test_unknown_component_raises():
 
     with pytest.raises(KeyError, match="No provider for"):
         mgr.wait_for_ready("NonExistent")
+
+
+def test_get_mem_entries_flat():
+    provider = MockProvider()
+    mgr = EnvironmentManager()
+    mgr.set_provider(provider)
+    mgr.register("Redis", {"image": "redis", "version": "7", "port": 6379})
+    mgr.build_and_run()
+
+    entries = mgr.get_mem_entries()
+    assert entries["Redis.image"] == "redis"
+    assert entries["Redis.version"] == "7"
+    assert entries["Redis.port"] == "6379"
+    assert entries["Redis.ID"] == "mock-0"
+
+
+def test_get_mem_entries_nested_env():
+    provider = MockProvider()
+    mgr = EnvironmentManager()
+    mgr.set_provider(provider)
+    mgr.register("DB", {
+        "image": "postgres",
+        "env": {"POSTGRES_DB": "shop", "POSTGRES_PASSWORD": "secret"},
+    })
+    mgr.build_and_run()
+
+    entries = mgr.get_mem_entries()
+    assert entries["DB.env.POSTGRES_DB"] == "shop"
+    assert entries["DB.env.POSTGRES_PASSWORD"] == "secret"
+    assert entries["DB.image"] == "postgres"
+
+
+def test_get_mem_entries_multiple_components():
+    provider = MockProvider()
+    mgr = EnvironmentManager()
+    mgr.set_provider(provider)
+    mgr.register("Redis", {"image": "redis", "port": 6379})
+    mgr.register("DB", {"image": "postgres", "port": 5432})
+    mgr.build_and_run()
+
+    entries = mgr.get_mem_entries()
+    assert "Redis.image" in entries
+    assert "DB.image" in entries
+    assert entries["Redis.port"] == "6379"
+    assert entries["DB.port"] == "5432"
