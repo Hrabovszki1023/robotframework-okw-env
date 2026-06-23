@@ -180,15 +180,53 @@ PostgresDB:
   memory: 2048
 ```
 
+## Failure Snapshot — Preserve the Crime Scene
+
+When a test fails, the environment contains the **exact state** that caused
+the failure: database contents, log files, configuration, network state.
+Normally this is destroyed during teardown.
+
+With `snapshot`, the framework freezes all containers before teardown:
+
+```robot
+*** Test Cases ***
+Order With Payment Gateway
+    [Teardown]    Run Keywords
+    ...    SnapshotOnFail
+    ...    StopEnvironment    ALL
+```
+
+Or automatically via a global hook — every failed test gets a snapshot
+without extra code in the test case.
+
+**What the tester gets:**
+- Snapshot of every container at the moment of failure
+- Can start the snapshot later and inspect: DB queries, log files,
+  config state, network connections
+- No more "I can't reproduce it" — the failure state is preserved
+
+**Provider-specific implementation:**
+
+| Provider | Snapshot mechanism |
+|---|---|
+| Docker | `docker commit` → saved image |
+| Proxmox | VM/LXC snapshot via API |
+| Kubernetes | Pod state export |
+
+This is another Signal vs. NOISE win: today, failure analysis requires
+reconstructing the environment from logs. With snapshots, the tester
+goes directly to the frozen state — maximum Signal.
+
 ## Provider Contract
 
-Every provider implements five methods:
+Every provider implements six methods:
 
 | Method | Purpose |
 |---|---|
 | `create(component)` | Create the environment component |
 | `start(component_id)` | Start it |
 | `is_ready(component_id)` | Health check passed? |
+| `snapshot(component_id)` | Freeze current state for later analysis |
 | `stop(component_id)` | Stop it |
 | `destroy(component_id)` | Remove it and all resources |
 

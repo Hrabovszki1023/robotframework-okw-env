@@ -19,6 +19,10 @@ class OkwEnvProviderBase(ABC):
         """Check if the component is ready (health check passed)."""
 
     @abstractmethod
+    def snapshot(self, component_id: str) -> str:
+        """Freeze the current state for later analysis. Returns a snapshot ID."""
+
+    @abstractmethod
     def stop(self, component_id: str) -> None:
         """Stop the component."""
 
