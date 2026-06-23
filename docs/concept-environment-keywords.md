@@ -433,3 +433,30 @@ The mapping is:
 Project-specific customization happens entirely in YAML (which image,
 which port, which env vars) — not in code. Same as GUI widgets, where
 the locator YAML is project-specific, not the widget class.
+
+## Further Ideas and Sources
+
+### Inspiration Projects
+
+| Project | What we can learn |
+|---|---|
+| **Testcontainers** (Python/Java) | Pre-built modules, wait strategies, network abstraction |
+| **Terraform** | Provider pattern, output variables, dependency graph |
+| **Docker Compose** | Profiles, volume mounts, service dependencies |
+| **Chaos Engineering** | Network simulation (latency, packet loss) |
+
+### Potential Features (Not Yet Planned)
+
+| Idea | Source | Benefit |
+|---|---|---|
+| Wait strategies (log line, port, HTTP) | Testcontainers | More flexible than healthcheck alone |
+| Output variables between services | Terraform | DB connection string auto-passed to WebShop |
+| Pre-built modules (Postgres, Redis, ...) | Testcontainers | No YAML needed for standard components |
+| Network simulation (latency, packet loss) | Chaos Engineering | Resilience testing |
+| Volume mounts (SQL scripts, config files) | Docker Compose | Load test data on startup |
+| Dependency graph (auto-ordering) | Terraform | No manual `depends_on`, framework resolves order |
+
+### Priority Assessment
+
+Start with the core (ENV_ keywords, YAML loader, Docker provider).
+Add features when real projects need them — not speculatively. YAGNI.
