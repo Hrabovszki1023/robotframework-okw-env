@@ -67,12 +67,18 @@ class OkwEnvLibrary:
         logger.info("ENV_BuildAndRun: All components started.")
 
     @keyword("ENV_WaitForReady")
-    def env_wait_for_ready(self, name: str, timeout: str = "30s"):
+    def env_wait_for_ready(self, name: str, timeout: str | None = None):
         """Wait until a component passes its health check.
 
+        Timeout is read from the component YAML (``timeout`` key).
+        An explicit parameter overrides the YAML value.
+
         Example:
+        | ENV_WaitForReady | WebShop |             |
         | ENV_WaitForReady | WebShop | timeout=60s |
         """
+        if timeout is None:
+            timeout = self._manager.get_component_config(name).get("timeout", "30s")
         timeout_seconds = self._parse_timeout(timeout)
         self._manager.wait_for_ready(name, timeout=timeout_seconds)
         logger.info(f"ENV_WaitForReady: '{name}' is ready.")

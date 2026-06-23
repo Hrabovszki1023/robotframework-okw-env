@@ -6,7 +6,7 @@ Database Is Reachable
     [Documentation]    Start a PostgresDB container and verify it becomes ready.
     ENV_Start        PostgresDB
     ENV_BuildAndRun
-    ENV_WaitForReady    PostgresDB    timeout=30s
+    ENV_WaitForReady    PostgresDB
     Log    PostgresDB is ready for testing.
     [Teardown]    ENV_Stop
 
@@ -15,7 +15,7 @@ Database And Cache Together
     ENV_Start        PostgresDB
     ENV_Start        Redis
     ENV_BuildAndRun
-    ENV_WaitForReady    PostgresDB    timeout=30s
-    ENV_WaitForReady    Redis         timeout=10s
+    ENV_WaitForReady    PostgresDB
+    ENV_WaitForReady    Redis
     Log    Both services are running.
     [Teardown]    Run Keywords    ENV_SnapshotOnFail    ENV_Stop

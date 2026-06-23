@@ -74,6 +74,12 @@ class EnvironmentManager:
         self._component_ids.clear()
         self._components.clear()
 
+    def get_component_config(self, name: str) -> dict:
+        """Return the registered component definition."""
+        if name not in self._components:
+            raise KeyError(f"Component '{name}' not registered. Registered: {list(self._components.keys())}")
+        return self._components[name]
+
     def _require_component_id(self, name: str) -> str:
         if name not in self._component_ids:
             raise KeyError(f"Component '{name}' not found. Registered: {list(self._component_ids.keys())}")
