@@ -32,14 +32,9 @@ class OkwEnvLibrary:
 
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
-    def __init__(self, provider=None, components_dir: str | None = None):
+    def __init__(self, components_dir: str | None = None):
         self._manager = EnvironmentManager()
         self._components_dir = Path(components_dir) if components_dir else None
-        if provider is not None:
-            self._manager.set_provider(provider)
-
-    def set_provider(self, provider):
-        self._manager.set_provider(provider)
 
     @keyword("ENV_Start")
     def env_start(self, name: str, **overrides):
