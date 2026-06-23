@@ -24,12 +24,15 @@ and implements all abstract methods.
 | `is_ready` | `(component_id: str) -> bool` | Health check. Returns `True` when the component is operational. |
 | `get_logs` | `(component_id: str) -> str` | Retrieve stdout/stderr logs from the component. |
 | `snapshot` | `(component_id: str) -> str` | Freeze the current state. Returns a snapshot ID for later restoration. |
+| `get_runtime_info` | `(component_id: str) -> dict` | Return runtime values that override YAML config (e.g. assigned port). Default: `{}`. |
 | `stop` | `(component_id: str) -> None` | Stop the component (but keep resources). |
 | `destroy` | `(component_id: str) -> None` | Remove the component and all associated resources (networks, volumes, disks). |
 
 ### Rules
 
-1. **All methods are mandatory.** No optional methods, no partial implementations.
+1. **All abstract methods are mandatory.** `get_runtime_info` is optional
+   (default returns `{}`). Override it when the provider assigns values
+   at runtime (e.g. dynamic port mapping).
 2. **`create` + `start` are separate.** `create` prepares resources,
    `start` activates them. This allows batch creation before starting.
 3. **`stop` + `destroy` are separate.** `stop` halts execution,
@@ -144,7 +147,7 @@ Providers MUST raise clear exceptions:
 
 ```
 ENV_Start        → register component(s)
-ENV_BuildAndRun  → create() → start()
+ENV_BuildAndRun  → create() → start() → get_runtime_info() → update config
 ENV_WaitForReady → is_ready() polling
                    ... test runs ...
 ENV_SnapshotOnFail → snapshot() (on FAIL only)

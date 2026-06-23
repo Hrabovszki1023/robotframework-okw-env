@@ -34,6 +34,14 @@ class OkwEnvProviderBase(ABC):
     def snapshot(self, component_id: str) -> str:
         """Freeze the current state for later analysis. Returns a snapshot ID."""
 
+    def get_runtime_info(self, component_id: str) -> dict:
+        """Return runtime values that override YAML config (e.g. assigned port).
+
+        Default returns empty dict. Providers override as needed.
+        Called after start() to update component config with actual values.
+        """
+        return {}
+
     @abstractmethod
     def stop(self, component_id: str) -> None:
         """Stop the component."""

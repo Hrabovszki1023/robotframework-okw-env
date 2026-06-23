@@ -37,6 +37,9 @@ class EnvironmentManager:
             self._component_ids[name] = component_id
             self._providers[name] = provider
             provider.start(component_id)
+            runtime_info = provider.get_runtime_info(component_id)
+            if runtime_info:
+                component.update(runtime_info)
 
     def wait_for_ready(self, name: str, timeout: float = 30.0, interval: float = 1.0) -> None:
         """Poll until the component is ready or timeout is reached."""
