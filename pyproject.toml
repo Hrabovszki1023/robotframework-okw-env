@@ -7,14 +7,30 @@ name = "robotframework-okw-env"
 version = "0.1.0"
 description = "Driver-agnostic environment abstraction for OKW4Robot. Defines keywords and YAML-based component definitions to build, run, and tear down ephemeral test environments."
 readme = "README.md"
+license = "AGPL-3.0-only"
 requires-python = ">=3.10"
+authors = [
+    {name = "Zoltan Hrabovszki", email = "hrabovszki@googlemail.com"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: Robot Framework",
+    "Framework :: Robot Framework :: Library",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+]
+keywords = ["robotframework", "environment", "testing", "okw", "docker"]
 dependencies = [
   "robotframework>=6.0",
   "pyyaml>=6.0"
 ]
 
 [project.urls]
-Repository = "http://192.168.1.130:3000/Hrabovszki1023/robotframework-okw-env"
+Homepage = "https://github.com/Hrabovszki1023/robotframework-okw-env"
+Repository = "https://github.com/Hrabovszki1023/robotframework-okw-env"
+Documentation = "https://hrabovszki1023.github.io/robotframework-okw-env/"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
