@@ -101,9 +101,17 @@ Order With Payment Gateway
 - **Combinable** — Version matrix testing via templates
 - **Provider-agnostic** — Same test, different infrastructure
 
+## Runnable Examples
+
+[okw-examples/env-docker/](https://github.com/Hrabovszki1023/okw-examples/tree/main/env-docker/) — Docker Compose environment provisioning.
+
+## Handbuch
+
+[OKW4Robot Handbuch](https://hrabovszki1023.github.io/okw-examples/) — step-by-step guide (German).
+
 ## Provider Plugins
 
 | Plugin | Repository |
 |---|---|
-| [okw-env-docker](http://192.168.1.130:3000/Hrabovszki1023/robotframework-okw-env-docker) | Docker Compose |
-| [okw-env-proxmox](http://192.168.1.130:3000/Hrabovszki1023/robotframework-okw-env-proxmox) | Proxmox VE |
+| [okw-env-docker](https://github.com/Hrabovszki1023/robotframework-okw-env-docker) | Docker Compose |
+| [okw-env-proxmox](https://github.com/Hrabovszki1023/robotframework-okw-env-proxmox) | Proxmox VE |
