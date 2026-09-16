@@ -1,6 +1,10 @@
 # robotframework-okw-env
 
-Driver-agnostic environment abstraction for [OKW4Robot](http://192.168.1.130:3000/Hrabovszki1023/robotframework-okw4robot).
+[![PyPI](https://img.shields.io/pypi/v/robotframework-okw-env)](https://pypi.org/project/robotframework-okw-env/)
+[![Python](https://img.shields.io/pypi/pyversions/robotframework-okw-env)](https://pypi.org/project/robotframework-okw-env/)
+[![License](https://img.shields.io/badge/License-OKW_Community-orange.svg)](LICENSE)
+
+Driver-agnostic environment abstraction for [OKW4Robot](https://github.com/Hrabovszki1023/robotframework-okw4robot).
 
 > Deutsche Version: [README_de.md](README_de.md)
 
