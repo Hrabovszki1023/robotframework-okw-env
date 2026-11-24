@@ -2,7 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/robotframework-okw-env)](https://pypi.org/project/robotframework-okw-env/)
 [![Python](https://img.shields.io/pypi/pyversions/robotframework-okw-env)](https://pypi.org/project/robotframework-okw-env/)
-[![License](https://img.shields.io/badge/License-OKW_Community-orange.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 Treiberunabhängige Umgebungsabstraktion für [OKW4Robot](https://github.com/Hrabovszki1023/robotframework-okw4robot).
 
